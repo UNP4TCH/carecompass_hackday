@@ -41,7 +41,7 @@ origins = os.getenv(
 ).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[item.strip() for item in origins if item.strip()],
+    allow_origins=[item.strip().rstrip("/") for item in origins if item.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
