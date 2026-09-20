@@ -1,14 +1,33 @@
 import { useMemo, useState } from "react";
 
+import { Footer, Header, SkipLink, StageNav } from "./components/Chrome";
+import IntakeView from "./components/IntakeView";
+import AssessmentView from "./components/AssessmentView";
+import EmergencyView from "./components/EmergencyView";
+import UnavailableView from "./components/UnavailableView";
+import ResultView from "./components/ResultView";
+import DocumentSimplifierView from "./components/DocumentSimplifierView";
+import { stageFor } from "./lib/presentation";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const EXAMPLES = [
-  "I have had a headache since yesterday and it gets worse when I move.",
-  "I have a sore throat and fever that started two days ago.",
-  "I've been feeling tired for about a week and I'm not sleeping well.",
+  {
+    label: "Headache that worsens with movement",
+    text: "I have had a headache since yesterday and it gets worse when I move.",
+  },
+  {
+    label: "Sore throat and fever",
+    text: "I have a sore throat and fever that started two days ago.",
+  },
+  {
+    label: "Tired for a week, sleeping poorly",
+    text: "I've been feeling tired for about a week and I'm not sleeping well.",
+  },
 ];
 
 function App() {
+  const [toolMode, setToolMode] = useState("assessment");
   const [symptoms, setSymptoms] = useState("");
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
@@ -21,6 +40,7 @@ function App() {
   const [aiUnavailable, setAiUnavailable] = useState(null);
   const [turnCount, setTurnCount] = useState(0);
   const [maxTurns, setMaxTurns] = useState(7);
+  const [assessmentDate, setAssessmentDate] = useState(null);
 
   const inAssessment = messages.length > 0;
 
@@ -46,6 +66,8 @@ function App() {
     setAiUnavailable(null);
     setTurnCount(0);
     setMaxTurns(7);
+    setAssessmentDate(null);
+    setToolMode("assessment");
   }
 
   async function startAssessment(text = symptoms) {
@@ -60,6 +82,7 @@ function App() {
     setEmergency(null);
     setCompleted(false);
     setFinalAssessment(null);
+    setAssessmentDate(new Date().toISOString());
     setMessages([{ role: "user", text: value }]);
 
     try {
@@ -204,6 +227,7 @@ function App() {
             ...prev,
             {
               role: "assistant",
+              kind: "clarification",
               text: data.assistant_message,
             },
           ]);
@@ -264,728 +288,113 @@ function App() {
     submitAnswer(value);
   }
 
-  const urgencyLabel = {
-    emergency: "Emergency",
-    prompt_medical_attention: "Prompt medical attention",
-    routine_follow_up: "Routine follow-up",
-    self_care_monitoring: "Self-care & monitoring",
-  };
+  // ---- presentation only: which screen to show, from existing state ----
+  const view = emergency
+    ? "emergency"
+    : aiUnavailable
+    ? "unavailable"
+    : completed && finalAssessment
+    ? "result"
+    : inAssessment
+    ? "assessment"
+    : "intake";
 
-  function formatCareLevel(level) {
-    const labels = {
-      emergency: "Emergency",
-      urgent: "Urgent",
-      routine: "Routine",
-      self_care: "Self-care",
-    };
+  const activeStage = stageFor(view, {
+    hasQuestion: Boolean(currentQuestion),
+    progress,
+  });
 
-    return labels[level] || level || "—";
-  }
+  const showStages =
+    toolMode === "assessment" &&
+    (view === "intake" || view === "assessment" || view === "result");
 
-  function formatFlag(flag) {
-    return (flag || "")
-      .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
+  const headerView = toolMode === "document" ? "document" : view;
 
   return (
     <div className="app-shell">
+      <SkipLink />
 
-      {/* =========================================================
-          TOP BAR
-          ========================================================= */}
+      <Header
+        view={headerView}
+        onReset={resetAssessment}
+        toolMode={toolMode}
+        onSwitchMode={setToolMode}
+      />
 
-      <header className="topbar">
-        <div
-          className="brand"
-          onClick={resetAssessment}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="compass-mark">
-            <span>+</span>
-          </div>
+      <main id="main" className="main" tabIndex={-1}>
+        <div className="container">
+          {toolMode === "document" ? (
+            <DocumentSimplifierView
+              onBackToAssessment={() => setToolMode("assessment")}
+            />
+          ) : (
+            <>
+              {showStages && <StageNav active={activeStage} />}
 
-          <div>
-            <strong>CareCompass</strong>
-            <small>
-              Healthcare navigation
-            </small>
-          </div>
-        </div>
-
-        <div className="top-status">
-          <span className="status-dot" />
-          Safety-aware AI
-        </div>
-      </header>
-
-
-      {/* =========================================================
-          MAIN
-          ========================================================= */}
-
-      <main className="main">
-
-        {/* =======================================================
-            LANDING / INTAKE
-            ======================================================= */}
-
-        {!inAssessment &&
-          !emergency &&
-          !aiUnavailable && (
-            <section className="hero">
-
-              <div className="eyebrow-pill">
-                FIRST-STEP HEALTH GUIDANCE
-              </div>
-
-              <h1>
-                Know what to do{" "}
-                <em>next.</em>
-              </h1>
-
-              <p className="hero-copy">
-                Describe what you're experiencing.
-                CareCompass asks relevant follow-up
-                questions, checks for safety-critical
-                warning signs, and helps you navigate
-                an appropriate next step.
-              </p>
-
-              <div className="intake-card">
-
-                <textarea
-                  value={symptoms}
-                  onChange={(e) =>
-                    setSymptoms(e.target.value)
-                  }
-                  placeholder="Tell me what you're experiencing in your own words…"
-                  rows={6}
-                  maxLength={5000}
+              {view === "intake" && (
+                <IntakeView
+                  symptoms={symptoms}
+                  onSymptomsChange={setSymptoms}
+                  loading={loading}
+                  onStart={startAssessment}
+                  examples={EXAMPLES}
+                  onOpenDocumentSimplifier={() => setToolMode("document")}
                 />
+              )}
 
-                <div className="intake-footer">
-                  <span>
-                    {symptoms.length}/5000 · Avoid
-                    names, addresses, or other
-                    unnecessary personal details.
-                  </span>
+              {view === "assessment" && (
+                <AssessmentView
+                  currentQuestion={currentQuestion}
+                  loading={loading}
+                  messages={messages}
+                  progress={progress}
+                  turnCount={turnCount}
+                  maxTurns={maxTurns}
+                  error={error}
+                  onSubmit={handleAnswerSubmit}
+                  onReset={resetAssessment}
+                />
+              )}
 
-                  <button
-                    className="primary"
-                    onClick={() =>
-                      startAssessment()
-                    }
-                    disabled={
-                      loading ||
-                      !symptoms.trim()
-                    }
-                  >
-                    {loading
-                      ? "Starting…"
-                      : "Begin assessment →"}
-                  </button>
+              {view === "emergency" && (
+                <EmergencyView
+                  emergency={emergency}
+                  messages={messages}
+                  assessmentDate={assessmentDate}
+                  onReset={resetAssessment}
+                />
+              )}
+
+              {view === "unavailable" && (
+                <UnavailableView
+                  message={aiUnavailable}
+                  onReset={resetAssessment}
+                />
+              )}
+
+              {view === "result" && (
+                <ResultView
+                  assessment={finalAssessment}
+                  messages={messages}
+                  assessmentDate={assessmentDate}
+                  onReset={resetAssessment}
+                />
+              )}
+
+              {error && view !== "assessment" && (
+                <div className="error-banner" role="alert">
+                  {error}
                 </div>
-
-              </div>
-
-              <div className="examples">
-                <span>
-                  Try an example
-                </span>
-
-                {EXAMPLES.map((example) => (
-                  <button
-                    key={example}
-                    onClick={() =>
-                      setSymptoms(example)
-                    }
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-
-              <div className="trust-row">
-                <div>
-                  <b>01</b>
-                  <span>Understand</span>
-                </div>
-
-                <div>
-                  <b>02</b>
-                  <span>Ask</span>
-                </div>
-
-                <div>
-                  <b>03</b>
-                  <span>Assess</span>
-                </div>
-
-                <div>
-                  <b>04</b>
-                  <span>Guide</span>
-                </div>
-              </div>
-
-            </section>
+              )}
+            </>
           )}
-
-
-        {/* =======================================================
-            ASSESSMENT WORKSPACE
-            ======================================================= */}
-
-        {(inAssessment ||
-          emergency ||
-          aiUnavailable) && (
-          <section className="workspace">
-
-            <div className="workspace-head">
-
-              <div>
-                <span className="eyebrow">
-                  CARECOMPASS ASSESSMENT
-                </span>
-
-                <h2>
-                  {emergency
-                    ? "Safety check triggered"
-                    : completed
-                    ? "Your guidance is ready"
-                    : "Let's understand the situation"}
-                </h2>
-              </div>
-
-              <button
-                className="ghost"
-                onClick={resetAssessment}
-              >
-                Start over
-              </button>
-
-            </div>
-
-
-            {/* =================================================
-                PROGRESS
-                ================================================= */}
-
-            {!emergency &&
-              !aiUnavailable &&
-              !completed && (
-                <div className="progress-wrap">
-
-                  <div className="progress-label">
-                    <span>
-                      Assessment progress
-                    </span>
-
-                    <span>
-                      {Math.round(progress)}%
-                    </span>
-                  </div>
-
-                  <div className="progress">
-                    <div
-                      style={{
-                        width: `${progress}%`,
-                      }}
-                    />
-                  </div>
-
-                </div>
-              )}
-
-
-            {/* =================================================
-                EMERGENCY
-                ================================================= */}
-
-            {emergency && (
-              <div className="emergency-card">
-
-                <div className="danger-icon">
-                  !
-                </div>
-
-                <div>
-
-                  <span className="danger-kicker">
-                    SAFETY FIRST
-                  </span>
-
-                  <h3>
-                    Potential emergency
-                    warning signs detected.
-                  </h3>
-
-                  <p>
-                    {emergency.message}
-                  </p>
-
-                  {emergency.detected_signs?.length >
-                    0 && (
-                    <div className="flag-list">
-
-                      {emergency.detected_signs.map(
-                        (flag) => (
-                          <span key={flag}>
-                            {formatFlag(flag)}
-                          </span>
-                        )
-                      )}
-
-                    </div>
-                  )}
-
-                  <p className="fine-print">
-                    CareCompass is not an
-                    emergency service and cannot
-                    diagnose a condition.
-                  </p>
-
-                </div>
-
-              </div>
-            )}
-
-
-            {/* =================================================
-                AI UNAVAILABLE
-                ================================================= */}
-
-            {aiUnavailable && (
-              <div className="notice-card">
-
-                <div className="notice-icon">
-                  ↻
-                </div>
-
-                <div>
-
-                  <h3>
-                    AI service unavailable
-                  </h3>
-
-                  <p>
-                    {aiUnavailable}
-                  </p>
-
-                  <p className="fine-print">
-                    No AI-generated assessment is
-                    shown when the reasoning
-                    service is unavailable.
-                  </p>
-
-                </div>
-
-              </div>
-            )}
-
-
-            {/* =================================================
-                CONVERSATION
-                ================================================= */}
-
-            {inAssessment &&
-              !emergency &&
-              !aiUnavailable && (
-                <div className="conversation-layout">
-
-                  <div className="chat-card">
-
-                    <div className="chat-head">
-                      <span className="live-dot" />
-                      Live assessment
-                    </div>
-
-                    <div className="messages">
-
-                      {messages.map(
-                        (message, index) => (
-                          <div
-                            key={index}
-                            className={`message-row ${message.role}`}
-                          >
-
-                            {message.role ===
-                              "assistant" && (
-                              <div className="mini-mark">
-                                +
-                              </div>
-                            )}
-
-                            <div className="bubble">
-                              {message.text}
-                            </div>
-
-                          </div>
-                        )
-                      )}
-
-                      {loading && (
-                        <div className="message-row assistant">
-
-                          <div className="mini-mark">
-                            +
-                          </div>
-
-                          <div className="bubble thinking">
-                            <i />
-                            <i />
-                            <i />
-                          </div>
-
-                        </div>
-                      )}
-
-                    </div>
-
-                    {currentQuestion &&
-                      !completed && (
-                        <form
-                          className="answer-form"
-                          onSubmit={
-                            handleAnswerSubmit
-                          }
-                        >
-
-                          <input
-                            name="answer"
-                            placeholder="Type your answer…"
-                            autoComplete="off"
-                            disabled={loading}
-                          />
-
-                          <button
-                            className="primary"
-                            disabled={loading}
-                          >
-                            Send
-                          </button>
-
-                        </form>
-                      )}
-
-                  </div>
-
-
-                  <aside className="side-card">
-
-                    <div className="side-icon">
-                      🧭
-                    </div>
-
-                    <h3>
-                      Navigation, not diagnosis.
-                    </h3>
-
-                    <p>
-                      CareCompass gathers context,
-                      checks safety signals, and
-                      helps identify an appropriate
-                      care level.
-                    </p>
-
-                    <div className="side-rule" />
-
-                    <span className="small-label">
-                      SAFETY LAYER
-                    </span>
-
-                    <strong>
-                      Deterministic red-flag
-                      screening
-                    </strong>
-
-                    <p className="muted">
-                      The safety layer is
-                      independent of the AI
-                      reasoning layer.
-                    </p>
-
-                  </aside>
-
-                </div>
-              )}
-
-
-            {/* =================================================
-                FINAL RESULTS
-                ================================================= */}
-
-            {completed &&
-              finalAssessment && (
-                <section className="results-card">
-
-                  <div className="results-top">
-
-                    <div>
-                      <span className="eyebrow">
-                        PRELIMINARY GUIDANCE
-                      </span>
-
-                      <h3>
-                        What CareCompass found
-                      </h3>
-                    </div>
-
-                    <span
-                      className={`urgency ${finalAssessment.urgency}`}
-                    >
-                      {urgencyLabel[
-                        finalAssessment.urgency
-                      ] ||
-                        finalAssessment.urgency}
-                    </span>
-
-                  </div>
-
-
-                  <div className="result-grid">
-
-                    {/* =========================================
-                        MAIN RESULT
-                        ========================================= */}
-
-                    <div className="result-main">
-
-                      <div className="result-block">
-                        <span>
-                          WHAT WE UNDERSTOOD
-                        </span>
-
-                        <p>
-                          {finalAssessment.summary}
-                        </p>
-                      </div>
-
-
-                      <div className="action-box">
-                        <span>
-                          RECOMMENDED NEXT STEP
-                        </span>
-
-                        <p>
-                          {
-                            finalAssessment.recommended_action
-                          }
-                        </p>
-                      </div>
-
-
-                      <div className="result-block">
-                        <span>
-                          WHY
-                        </span>
-
-                        <p>
-                          {finalAssessment.why}
-                        </p>
-                      </div>
-
-                    </div>
-
-
-                    {/* =========================================
-                        CARE NAVIGATION
-                        ========================================= */}
-
-                    <div className="result-side">
-
-                      {finalAssessment.navigation && (
-                        <div
-                          className={`navigation-box navigation-${finalAssessment.navigation.level}`}
-                        >
-
-                          <span className="navigation-kicker">
-                            YOUR NEXT STEP
-                          </span>
-
-                          <strong className="navigation-title">
-                            {
-                              finalAssessment
-                                .navigation
-                                .label
-                            }
-                          </strong>
-
-
-                          <div className="navigation-detail">
-                            <span>
-                              WHEN
-                            </span>
-
-                            <p>
-                              {
-                                finalAssessment
-                                  .navigation
-                                  .timeframe
-                              }
-                            </p>
-                          </div>
-
-
-                          <div className="navigation-detail">
-                            <span>
-                              WHERE
-                            </span>
-
-                            <p>
-                              {
-                                finalAssessment
-                                  .navigation
-                                  .setting
-                              }
-                            </p>
-                          </div>
-
-
-                          <div className="navigation-action">
-                            <span>
-                              WHAT TO DO
-                            </span>
-
-                            <p>
-                              {
-                                finalAssessment
-                                  .navigation
-                                  .action
-                              }
-                            </p>
-                          </div>
-
-
-                          <div className="navigation-escalation">
-                            <span>
-                              WHEN TO ESCALATE
-                            </span>
-
-                            <p>
-                              {
-                                finalAssessment
-                                  .navigation
-                                  .escalation
-                              }
-                            </p>
-                          </div>
-
-                        </div>
-                      )}
-
-
-                      {/* =======================================
-                          CARE LEVEL
-                          ======================================= */}
-
-                      <div className="care-level">
-
-                        <span>
-                          CARE LEVEL
-                        </span>
-
-                        <strong>
-                          {formatCareLevel(finalAssessment.care_level)}
-                        </strong>
-
-                      </div>
-
-
-                      {/* =======================================
-                          WARNING SIGNS
-                          ======================================= */}
-
-                      {finalAssessment.warning_signs
-                        ?.length > 0 && (
-                        <div className="warnings">
-
-                          <span>
-                            WATCH FOR
-                          </span>
-
-                          <ul>
-                            {finalAssessment.warning_signs.map(
-                              (warning) => (
-                                <li key={warning}>
-                                  {warning}
-                                </li>
-                              )
-                            )}
-                          </ul>
-
-                        </div>
-                      )}
-
-                    </div>
-
-                  </div>
-
-
-                  {/* ===========================================
-                      DISCLAIMER
-                      =========================================== */}
-
-                  <div className="disclaimer">
-
-                    <strong>
-                      Important
-                    </strong>
-
-                    <p>
-                      {finalAssessment.disclaimer}
-                    </p>
-
-                  </div>
-
-
-                  <button
-                    className="primary wide"
-                    onClick={resetAssessment}
-                  >
-                    Start a new assessment
-                  </button>
-
-                </section>
-              )}
-
-
-            {/* =================================================
-                GENERAL ERROR
-                ================================================= */}
-
-            {error && (
-              <div className="error-banner">
-                {error}
-              </div>
-            )}
-
-          </section>
-        )}
-
+        </div>
       </main>
 
-
-      {/* =========================================================
-          FOOTER
-          ========================================================= */}
-
-      <footer className="footer">
-
-        <span>
-          CareCompass · AI-powered healthcare
-          navigation
-        </span>
-
-        <span>
-          Preliminary guidance only · Not a diagnosis
-        </span>
-
-      </footer>
-
+      <Footer />
     </div>
   );
+
 }
 
 export default App;
