@@ -5,6 +5,8 @@ make the application's emergency decision; that responsibility stays in the
 deterministic safety layer.
 
 This module also provides bounded retry handling for transient Gemini failures.
+
+Updated: September 20, 2026 — Hackday 1.0
 """
 
 from __future__ import annotations

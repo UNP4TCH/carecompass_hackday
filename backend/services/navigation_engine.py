@@ -5,6 +5,8 @@ assessment into structured navigation guidance.
 
 It does not diagnose conditions and does not determine emergency status.
 Emergency authority remains with the deterministic safety engine.
+
+Updated: September 20, 2026 — Hackday 1.0
 """
 
 from __future__ import annotations

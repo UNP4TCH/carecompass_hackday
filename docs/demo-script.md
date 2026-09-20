@@ -1,25 +1,38 @@
-# 3-minute CareCompass demo
+# CareCompass 3-Minute Demo Runbook
 
-## 1. Start
-Say:
-> "CareCompass is not trying to diagnose a disease. It addresses the gap between noticing a symptom and knowing what to do next."
+*Updated: September 20, 2026 — Hackday 1.0 Submission*
 
-Enter a non-emergency example such as:
-> "I've had a headache since yesterday and it gets worse when I move."
+---
 
-## 2. Demonstrate adaptive questioning
-Answer the first question naturally.
-Point out that the next question is generated from the updated case rather than being a fixed list shown all at once.
+### Step 1: Emergency Triage Interception (Safety-First)
+1. In the Triage Assessment view, enter:
+   > *"I have crushing chest pain that radiates to my left arm, and I am feeling short of breath."*
+2. Click **"Begin Assessment"**.
+3. **Key talking points**:
+   - Immediate transition to the Emergency screen with clear safety instructions.
+   - Deterministic rule screening prevents LLM latency in acute emergencies.
+   - Highlights the 1-click **"Find Nearest Emergency Department"** button linking to nearby hospitals via Google Maps.
+4. Click **"Start Over"**.
 
-## 3. Demonstrate reassessment
-Mention that every answer is safety-checked again and the case is reassessed before the next question is chosen.
+---
 
-## 4. Demonstrate safety interruption
-For a separate fresh assessment, use a clearly urgent example such as:
-> "I'm having severe chest pain and struggling to breathe."
+### Step 2: Adaptive Questioning & Download Care Summary
+1. Enter a non-emergency symptom:
+   > *"I have had a mild tension headache for the past 2 hours after staring at my monitor all morning."*
+2. Click **"Begin Assessment"**.
+3. Answer the dynamic follow-up question (e.g., *"No vision changes or nausea, just dull forehead pressure"*).
+4. Review the result view:
+   - Care Level: Self-Care / Routine.
+   - Recommended timeframe: 24–48 hours or home rest.
+   - **Find Nearest Care**: Point out nearby clinic search options.
+   - Click **"Download Care Summary"**: Shows the clean, doctor-ready print layout (PDF export).
 
-Show that the deterministic safety layer interrupts the normal conversation.
+---
 
-## 5. Finish
-Say:
-> "The differentiator is the combination of adaptive AI reasoning with an independent deterministic safety layer."
+### Step 3: Prescription & Discharge Note Simplifier
+1. Click the **"Simplify Document"** tab in the navigation bar.
+2. Upload a sample prescription or doctor's note image (JPEG, PNG, or WEBP).
+3. **Key talking points**:
+   - Multimodal Gemini extraction structures complex handwriting and medical jargon into plain language.
+   - Uncertain or illegible items are explicitly highlighted for pharmacist confirmation.
+   - Emphasizes patient safety disclaimers.

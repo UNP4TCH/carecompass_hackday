@@ -7,6 +7,8 @@ first-pass screen for phrases that may indicate an emergency.
 
 It does NOT diagnose conditions. Its responsibility is to identify potential
 emergency warning signs and interrupt the normal AI assessment flow.
+
+Updated: September 20, 2026 — Hackday 1.0
 """
 
 from __future__ import annotations

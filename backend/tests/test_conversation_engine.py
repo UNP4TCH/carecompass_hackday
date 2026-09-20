@@ -1,3 +1,4 @@
+# CareCompass Test Suite — Updated: September 20, 2026 — Hackday 1.0
 from services.conversation_engine import create_conversation
 
 

@@ -1,3 +1,4 @@
+# CareCompass Test Suite — Updated: September 20, 2026 — Hackday 1.0
 from services.triage_engine import check_emergency_signs
 
 

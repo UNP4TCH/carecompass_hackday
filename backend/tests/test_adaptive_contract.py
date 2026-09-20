@@ -1,4 +1,6 @@
-"""Contract-level tests for the adaptive engine without calling Gemini."""
+"""Contract-level tests for the adaptive engine without calling Gemini.
+Updated: September 20, 2026 — Hackday 1.0
+"""
 from services.assessment_engine import _ask_next_question
 from services.conversation_engine import create_conversation
 import services.assessment_engine as engine

@@ -1,6 +1,7 @@
 {
   "name": "carecompass",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "description": "CareCompass AI - Healthcare navigation instrument prototype",
   "private": true,
   "type": "module",
   "scripts": {

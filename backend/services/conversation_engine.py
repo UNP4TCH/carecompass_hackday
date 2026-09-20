@@ -11,6 +11,8 @@ The conversation state keeps two related but distinct representations:
    - Can be updated when the user corrects or clarifies previous information.
 
 The state layer does not perform medical reasoning.
+
+Updated: September 20, 2026 — Hackday 1.0
 """
 
 from __future__ import annotations

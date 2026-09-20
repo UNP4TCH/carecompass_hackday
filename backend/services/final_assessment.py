@@ -5,6 +5,8 @@ assessment.
 
 The LLM provides structured preliminary guidance, while deterministic safety
 flags always have authority over emergency escalation.
+
+Updated: September 20, 2026 — Hackday 1.0
 """
 
 from __future__ import annotations
